@@ -101,5 +101,5 @@ jupyter notebook 3_Hill_Climbing_FIXED.ipynb
 
 ---
 
-## 📎 관련 문서
+## 관련 문서
 - [제출 코드 상세 README (재현성·규정 준수 검증용)](./README_제출코드.md)
