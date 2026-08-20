@@ -1,4 +1,4 @@
-# 🤰 난임치료 성공 예측 모델 (Pregnancy Success Forecaster)
+# 난임치료 성공 예측 모델 (Pregnancy Success Forecaster)
 
 [![Python](https://img.shields.io/badge/Python-3.10-blue)](https://www.python.org/)
 [![LightGBM](https://img.shields.io/badge/LightGBM-gray)](https://lightgbm.readthedocs.io/)
@@ -12,7 +12,7 @@
 
 ---
 
-## 📌 프로젝트 개요
+## 프로젝트 개요
 
 | 항목 | 내용 |
 |---|---|
@@ -25,7 +25,7 @@
 
 ---
 
-## 🏆 최종 모델 — 6-멤버 랭크 블렌드
+## 최종 모델 — 6-멤버 랭크 블렌드
 
 단일 모델이 아니라, 성격이 다른 6개 모델의 예측을 **순위(rank) 기준으로 블렌딩**했습니다.
 
@@ -46,7 +46,7 @@ LightGBM · CatBoost · XGBoost · Linear(ratio) · NN(임베딩-MLP) · TabM
 
 ---
 
-## 💡 핵심 설계 포인트
+## 핵심 설계 포인트
 
 ### 1. 랭크(Rank) 블렌딩으로 딥러닝 비결정성 방어
 NN·TabM은 GPU/MPS 커널 특성상 완전한 결정론적 재현이 어렵습니다. 확률값을 그대로 평균 내면 하드웨어 차이로 점수가 흔들릴 수 있어, **확률이 아닌 순위를 블렌딩**하는 방식을 채택했습니다. 개별 확률이 소수점 단위로 흔들려도 순위는 거의 불변이기 때문에, 재현 환경이 달라져도 AUC가 안정적으로 보존되도록 설계했습니다.
@@ -64,7 +64,7 @@ NN·TabM은 GPU/MPS 커널 특성상 완전한 결정론적 재현이 어렵습�
 
 ---
 
-## 🗂️ 프로젝트 구조 & 실행 순서
+## 프로젝트 구조 & 실행 순서
 
 ```
 ├── 1_cat_v2v3_.ipynb              # [1/3] 5개 멤버(LGBM·Cat·XGB·Lin·NN) 학습 — Kaggle GPU
@@ -95,7 +95,7 @@ jupyter notebook 3_Hill_Climbing_FIXED.ipynb
 
 ---
 
-## 🛠️ 기술 스택
+## 기술 스택
 
 `Python` `LightGBM` `CatBoost` `XGBoost` `PyTorch` `TabM (pytabkit)` `scikit-learn` `pandas` `NumPy`
 
