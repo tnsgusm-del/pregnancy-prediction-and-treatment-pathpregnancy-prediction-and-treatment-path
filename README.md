@@ -51,6 +51,57 @@ pip install -r requirements.txt
 
 단일 모델이 아니라, 성격이 다른 6개 모델의 예측을 **순위(rank) 기준으로 블렌딩**했습니다.
 
+```
+LightGBM · CatBoost · XGBoost · Linear(ratio) · NN(임베딩-MLP) · TabM
+```
+
+가중치는 OOF(Out-of-Fold) 예측에 대해 **Hill Climbing 탐색**으로 직접 최적화했습니다.
+
+| 멤버 | LightGBM | CatBoost | XGBoost | Linear | NN | **TabM** | **6-멤버 블렌드** |
+|---|---|---|---|---|---|---|---|
+| OOF AUC | 0.73965 | 0.73974 | 0.73964 | 0.72029 | 0.73812 | **0.74002** | **0.74090** |
+| 블렌드 가중치 | 0.200 | 0.212 | 0.094 | 0.012 | 0.141 | **0.341** | - |
+
+- **TabM**(tabular 전용 딥러닝, `pytabkit`)이 단일 모델 중 최고 성능이자 최대 가중치를 차지
+- 트리 계열(LGBM/CatBoost/XGBoost) + 선형 + 신경망 계열을 모두 섞어 **모델 다양성으로 일반화 성능 확보**
+- 최종 제출 점수: **Public LB 0.7424857289**
+
+---
+
+## 핵심 설계 포인트
+
+### 1. 랭크(Rank) 블렌딩으로 딥러닝 비결정성 방어
+NN·TabM은 GPU/MPS 커널 특성상 완전한 결정론적 재현이 어렵습니다. 확률값을 그대로 평균 내면 하드웨어 차이로 점수가 흔들릴 수 있어, 확률이 아닌 순위를 블렌딩하는 방식을 택했습니다.
+
+### 2. Fold-내부 Fit으로 데이터 누수 원천 차단
+인코딩·스케일링·결측치 대치 등 모든 전처리를 매 fold의 train 데이터에서만 학습(fit)하고, valid/test에는 transform만 적용했습니다. 혹시 모를 라벨 누수를 코드 레벨에서 바로 잡아내도록 검증도 걸어뒀습니다:
+
+```python
+oof_auc = roc_auc_score(y_train, oof_preds)
+assert oof_auc < 0.999, f"Potential leakage detected: OOF AUC={oof_auc:.5f}"
+```
+
+### 3. 학습 환경 분리
+트리·선형 모델은 로컬에서, NN·TabM은 Kaggle GPU 환경에서 각각 노트북 단위로 분리해 학습했습니다. 서로 다른 하드웨어에서 나온 결과를 하나로 합쳐야 했기 때문에, 위에서 설명한 재현성 대응(결정성 옵션, 랭크 블렌딩)이 필요했습니다.
+
+### 4. 30+ 실험 단계에 걸친 반복 개선
+피처 엔지니어링 → 그룹별 모델 블렌딩 → 확률 캘리브레이션 → 앙상블 가중치 최적화까지, 30회 이상의 ablation을 거쳐 최종 파이프라인에 도달했습니다.
+
+---
+
+## 프로젝트 구조 & 실행 순서
+
+```
+├── data/
+│   ├── raw/                        # 원본 대회 데이터 (train.csv, test.csv)
+│   └── processed/                  # fold별 oof_*.csv, test_*.csv 저장 위치
+├── 1_cat_v2v3_.ipynb              # [1/3] 5개 멤버(LGBM·Cat·XGB·Lin·NN) 학습 — Kaggle GPU
+├── 2_TabM_전처리_통일.ipynb          # [2/3] TabM 학습 — CUDA/MPS/CPU 자동 감지
+├── 3_Hill_Climbing_FIXED.ipynb    # [3/3] 6-멤버 랭크 블렌드 → 최종 제출 파일 생성
+├── requirements.txt
+└── README.md
+```
+
 | 순서 | 노트북 | 하는 일 | 산출물 |
 |---|---|---|---|
 | 1 | `1_cat_v2v3_.ipynb` | train.csv로 5개 멤버 5-Fold 학습 | `oof_*.csv`, `test_*.csv` × 5 |
